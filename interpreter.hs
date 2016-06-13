@@ -23,30 +23,26 @@ showVal Wrong = "<wrong>"
 showVal (Fun f) = "<function>"
 showVal (Num i) = show i
 
-interp :: Term -> Environment -> I Value
-interp (Con i) e = unitI (Num i)
+interp :: Term -> Environment -> Value
+interp (Con i) e = Num i
 interp (Var v) e = lookup v e
-interp (Add u v) e = interp u e `bindI` (\x ->
-                     interp v e `bindI` (\y ->
-                     add x y))
-interp (Lam n t) e = unitI (Fun (\x -> interp t ((n, x):e)))
-interp (App u v) e = interp u e `bindI` (\x ->
-                     interp v e `bindI` (\y ->
-                     apply x y))
+interp (Add u v) e = add (interp u e) (interp v e)
+interp (Lam n t) e = Fun (\x -> interp t ((n, x):e))
+interp (App u v) e = apply (interp u e) (interp v e)
 
-lookup :: Name -> Environment -> I Value
-lookup n [] = unitI Wrong
+lookup :: Name -> Environment -> Value
+lookup n [] = Wrong
 lookup n ((a,b):ax)
-    | a == n = unitI b
+    | a == n = b
     | otherwise = lookup n ax
 
-add :: Value -> Value -> I Value
-add (Num i) (Num j) = unitI (Num (i+j))
-add u v = unitI Wrong
+add :: Value -> Value -> Value
+add (Num i) (Num j) = Num (i+j)
+add u v = Wrong
 
-apply :: Value -> Value -> I Value
+apply :: Value -> Value -> Value
 apply (Fun f) v = f v
-apply u v = unitI Wrong
+apply u v = Wrong
 
 test :: Term -> String
 test u = showI $ interp u []
