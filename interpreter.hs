@@ -43,18 +43,18 @@ interp (App u v) e = interp u e `bindE` (\x ->
                      apply x y))
 
 lookup :: Name -> Environment -> E Value
-lookup n [] = unitE Wrong
+lookup n [] = errorE ("unbound variable: " ++ n)
 lookup n ((a,b):ax)
     | a == n = unitE b
     | otherwise = lookup n ax
 
 add :: Value -> Value -> E Value
 add (Num i) (Num j) = unitE (Num (i+j))
-add u v = unitE Wrong
+add u v = errorE ("should be numbers: " ++ showVal u ++ ", " ++ showVal v)
 
 apply :: Value -> Value -> E Value
 apply (Fun f) v = f v
-apply u v = unitE Wrong
+apply u v = errorE ("should be function: " ++ showVal u)
 
 test :: Term -> String
 test u = showE $ interp u []
