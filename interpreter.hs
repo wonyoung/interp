@@ -5,6 +5,23 @@ unitM a = a
 a `bindM` f = f a
 showM = showVal
 
+type State = Int
+showstate :: State -> String
+showstate = show
+s0 = 0
+
+type S a = State -> (a, State)
+unitS a = \s -> (a, s)
+m `bindS` f = \s0 -> let (a, s1) = m s0
+                         (b, s2) = f a s1
+                     in  (b, s2)
+showS m = let (a, s1) = m s0
+          in  "Value: " ++ showVal a ++ "; " ++
+              "Count: " ++ showstate s1
+
+tickS :: S ()
+tickS = \s -> ((), s+1)
+
 type Name = String
 data Term = Con Int
     | Var Name
@@ -14,7 +31,7 @@ data Term = Con Int
 
 data Value = Wrong
     | Num Int
-    | Fun (Value -> M Value)
+    | Fun (Value -> S Value)
 
 type Environment = [(Name, Value)]
 
@@ -23,33 +40,33 @@ showVal Wrong = "<wrong>"
 showVal (Fun f) = "<function>"
 showVal (Num i) = show i
 
-interp :: Term -> Environment -> M Value
-interp (Con i) e = unitM (Num i)
+interp :: Term -> Environment -> S Value
+interp (Con i) e = unitS (Num i)
 interp (Var v) e = lookup v e
-interp (Add u v) e = interp u e `bindM` (\x ->
-                     interp v e `bindM` (\y ->
+interp (Add u v) e = interp u e `bindS` (\x ->
+                     interp v e `bindS` (\y ->
                      add x y))
-interp (Lam n t) e = unitM (Fun (\x -> interp t ((n, x):e)))
-interp (App u v) e = interp u e `bindM` (\x ->
-                     interp v e `bindM` (\y ->
+interp (Lam n t) e = unitS (Fun (\x -> interp t ((n, x):e)))
+interp (App u v) e = interp u e `bindS` (\x ->
+                     interp v e `bindS` (\y ->
                      apply x y))
 
-lookup :: Name -> Environment -> M Value
-lookup n [] = unitM Wrong
+lookup :: Name -> Environment -> S Value
+lookup n [] = unitS Wrong
 lookup n ((a,b):ax)
-    | a == n = unitM b
+    | a == n = unitS b
     | otherwise = lookup n ax
 
-add :: Value -> Value -> M Value
-add (Num i) (Num j) = unitM (Num (i+j))
-add u v = unitM Wrong
+add :: Value -> Value -> S Value
+add (Num i) (Num j) = tickS `bindS` (\() -> unitS (Num (i+j)))
+add u v = unitS Wrong
 
-apply :: Value -> Value -> M Value
-apply (Fun f) v = f v
-apply u v = unitM Wrong
+apply :: Value -> Value -> S Value
+apply (Fun f) v = tickS `bindS` (\() -> f v)
+apply u v = unitS Wrong
 
 test :: Term -> String
-test u = showM $ interp u []
+test u = showS $ interp u []
 
 term0 = (App (Lam "x" (Add (Var "x") (Var "x"))) (Add (Con 11) (Con 10)))
 
