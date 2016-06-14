@@ -22,12 +22,16 @@ showS m = let (a, s1) = m s0
 tickS :: S ()
 tickS = \s -> ((), s+1)
 
+fetchS :: S State
+fetchS = \s -> (s, s)
+
 type Name = String
 data Term = Con Int
     | Var Name
     | Add Term Term
     | Lam Name Term
     | App Term Term
+    | Count
 
 data Value = Wrong
     | Num Int
@@ -50,6 +54,7 @@ interp (Lam n t) e = unitS (Fun (\x -> interp t ((n, x):e)))
 interp (App u v) e = interp u e `bindS` (\x ->
                      interp v e `bindS` (\y ->
                      apply x y))
+interp Count e = fetchS `bindS` (\i -> unitS (Num i))
 
 lookup :: Name -> Environment -> S Value
 lookup n [] = unitS Wrong
@@ -69,4 +74,4 @@ test :: Term -> String
 test u = showS $ interp u []
 
 term0 = (App (Lam "x" (Add (Var "x") (Var "x"))) (Add (Con 11) (Con 10)))
-
+term2 = (Add (Add (Con 1) (Con 2)) Count)
