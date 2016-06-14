@@ -27,9 +27,9 @@ data Term = Con Int
 
 data Value = Wrong
     | Num Int
-    | Fun (Value -> L Value)
+    | Fun (L Value -> L Value)
 
-type Environment = [(Name, Value)]
+type Environment = [(Name, L Value)]
 
 showVal :: Value -> String
 showVal Wrong = "<wrong>"
@@ -44,22 +44,21 @@ interp (Add u v) e = interp u e `bindL` (\x ->
                      add x y))
 interp (Lam n t) e = unitL (Fun (\x -> interp t ((n, x):e)))
 interp (App u v) e = interp u e `bindL` (\x ->
-                     interp v e `bindL` (\y ->
-                     apply x y))
+                     apply x (interp v e))
 interp Fail e = zeroL
 interp (Amb u v) e = interp u e `plusL` interp v e
 
 lookup :: Name -> Environment -> L Value
 lookup n [] = unitL Wrong
 lookup n ((a,b):ax)
-    | a == n = unitL b
+    | a == n = b
     | otherwise = lookup n ax
 
 add :: Value -> Value -> L Value
 add (Num i) (Num j) = unitL (Num (i+j))
 add u v = unitL Wrong
 
-apply :: Value -> Value -> L Value
+apply :: Value -> L Value -> L Value
 apply (Fun f) v = f v
 apply u v = unitL Wrong
 
