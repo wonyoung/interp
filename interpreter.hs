@@ -12,9 +12,9 @@ s0 = 0
 
 type S a = State -> (a, State)
 unitS a = \s -> (a, s)
-m `bindS` f = \s0 -> let (a, s1) = m s0
-                         (b, s2) = f a s1
-                     in  (b, s2)
+m `bindS` f = \s2 -> let (a, s0) = m s1
+                         (b, s1) = f a s2
+                     in  (b, s0)
 showS m = let (a, s1) = m s0
           in  "Value: " ++ showVal a ++ "; " ++
               "Count: " ++ showstate s1
