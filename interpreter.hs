@@ -35,9 +35,9 @@ data Term = Con Int
 
 data Value = Wrong
     | Num Int
-    | Fun (Value -> S Value)
+    | Fun (S Value -> S Value)
 
-type Environment = [(Name, Value)]
+type Environment = [(Name, S Value)]
 
 showVal :: Value -> String
 showVal Wrong = "<wrong>"
@@ -52,21 +52,20 @@ interp (Add u v) e = interp u e `bindS` (\x ->
                      add x y))
 interp (Lam n t) e = unitS (Fun (\x -> interp t ((n, x):e)))
 interp (App u v) e = interp u e `bindS` (\x ->
-                     interp v e `bindS` (\y ->
-                     apply x y))
+                     apply x (interp v e))
 interp Count e = fetchS `bindS` (\i -> unitS (Num i))
 
 lookup :: Name -> Environment -> S Value
 lookup n [] = unitS Wrong
 lookup n ((a,b):ax)
-    | a == n = unitS b
+    | a == n = b
     | otherwise = lookup n ax
 
 add :: Value -> Value -> S Value
 add (Num i) (Num j) = tickS `bindS` (\() -> unitS (Num (i+j)))
 add u v = unitS Wrong
 
-apply :: Value -> Value -> S Value
+apply :: Value -> S Value -> S Value
 apply (Fun f) v = tickS `bindS` (\() -> f v)
 apply u v = unitS Wrong
 
